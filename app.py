@@ -4,7 +4,6 @@ import torch.nn as nn
 import numpy
 import time
 import pathlib
-import pandas as pd
 
 # --- 提供されたソースコードのクラス定義 ---
 # 【修正点A】元の学習コードの仕様に合わせるため、get_observationを元に戻します。
