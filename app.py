@@ -173,7 +173,6 @@ def display_board(board):
     html = f'<span style="font-family:\'MS Gothic\',\'Osaka-Mono\',monospace;font-size:24px;line-height:1.1;">{header}<br/>{board_body}</span>'
     st.markdown(html, unsafe_allow_html=True)
 
-
 # --- Streamlit アプリケーションのメイン処理 ---
 
 st.title("Connect4（pytorch版）")
@@ -212,24 +211,30 @@ else:
 
     if current_player == 1: # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        cols = st.columns(7)
-        for i in range(7):
-            with cols[i]:
+        # 1行目（1〜4列）
+        cols1 = st.columns(4)
+        for i in range(4):
+            with cols1[i]:
                 if st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions)):
                     # 【修正点B】step関数の返り値を正しく使うように修正
                     _, _, done = st.session_state.game.step(i)
-                    
+                    st.session_state.ai_scores = None
                     if done:
                         st.session_state.game_over = True
-                        # 石を置いたのが人間なので、勝者も人間
-                        if len(st.session_state.game.legal_actions()) > 0:
-                             st.session_state.winner = 1  # Human
-                        else: # 引き分け
-                             st.session_state.winner = 0
-                    
-                    st.session_state.ai_scores = None # 次の自分のターンのためにクリア
+                        st.session_state.winner = 1 if len(st.session_state.game.legal_actions()) > 0 else 0
                     st.rerun()
-
+        # 2行目（5〜7列）
+        cols2 = st.columns(3)
+        for i in range(4, 7):
+            with cols2[i-4]:
+                if st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions)):
+                    # 【修正点B】step関数の返り値を正しく使うように修正
+                    _, _, done = st.session_state.game.step(i)
+                    st.session_state.ai_scores = None
+                    if done:
+                        st.session_state.game_over = True
+                        st.session_state.winner = 1 if len(st.session_state.game.legal_actions()) > 0 else 0
+                    st.rerun()
     else: # AIのターン
         st.session_state.message = "AIが思考中です..."
         message_placeholder.info(st.session_state.message)
