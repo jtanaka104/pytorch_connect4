@@ -173,6 +173,7 @@ def display_board(board):
     html = f'<span style="font-family:\'MS Gothic\',\'Osaka-Mono\',monospace;font-size:24px;line-height:1.1;">{header}<br/>{board_body}</span>'
     st.markdown(html, unsafe_allow_html=True)
 
+
 # --- Streamlit アプリケーションのメイン処理 ---
 
 st.title("Connect4（pytorch版）")
@@ -214,7 +215,21 @@ else:
         cols = st.columns(7)
         for i in range(7):
             with cols[i]:
-                st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions))
+                if st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions)):
+                    # 【修正点B】step関数の返り値を正しく使うように修正
+                    _, _, done = st.session_state.game.step(i)
+                    
+                    if done:
+                        st.session_state.game_over = True
+                        # 石を置いたのが人間なので、勝者も人間
+                        if len(st.session_state.game.legal_actions()) > 0:
+                             st.session_state.winner = 1  # Human
+                        else: # 引き分け
+                             st.session_state.winner = 0
+                    
+                    st.session_state.ai_scores = None # 次の自分のターンのためにクリア
+                    st.rerun()
+
     else: # AIのターン
         st.session_state.message = "AIが思考中です..."
         message_placeholder.info(st.session_state.message)
@@ -238,3 +253,15 @@ else:
 
         st.session_state.message = "あなたの番です。下のボタンから列を選んでください。"
         st.rerun()
+#
+#4層のニューラルネットワークを自己対戦で強化学習(32回の対戦を80万回＝2560万回)
+#損失関数: MSE(平均二乗誤差)
+#最適化関数: Adadelta(勾配と更新量の移動平均を使い、学習率を自動計算する) 学習率: 0.1
+#
+#＜ニューラルネット＞
+#出力層    1 = 推奨度(報酬) 勝ち:1.0, 同点:0.5, 負け:-1.5 (割引率:0.99)
+#中間層  364
+#中間層  182
+#入力層　 91 = 盤面状態(7列 × 6段 × 2人) ＋ アクション(7列)
+#　　　　　　　 コイン(なし:0, あり:1)　　　 非選択:0, 選択:1
+#パラメータ数 83721 = (91*182+182) + (182*364+364) + (364*1+1)
