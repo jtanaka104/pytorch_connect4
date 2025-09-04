@@ -199,10 +199,21 @@ st.markdown(
             .col-links a { color: inherit; }
             .col-links a:hover { background: rgba(255,255,255,0.1); }
             .col-links .disabled { opacity: 0.4; pointer-events: none; }
-            /* 1行ボタン行をチップ風に */
-            #act-btn-row + div[data-testid='stHorizontalBlock'] { display:flex; flex-wrap: nowrap; gap: 0.25rem; }
-            #act-btn-row + div[data-testid='stHorizontalBlock'] > div { flex: 1 0 auto; }
-            #act-btn-row + div[data-testid='stHorizontalBlock'] button { padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.95rem; }
+            /* 1行ボタン行をチップ風に（DOM差異に強い指定）*/
+            #act-btn-row ~ div[data-testid='stHorizontalBlock'] {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 0.25rem;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            #act-btn-row ~ div[data-testid='stHorizontalBlock'] > div { flex: 0 0 auto; }
+            #act-btn-row ~ div[data-testid='stHorizontalBlock'] button {
+                padding: 0.25rem 0.5rem;
+                border-radius: 999px;
+                font-size: 0.95rem;
+            }
             </style>
         """,
         unsafe_allow_html=True,
