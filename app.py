@@ -193,12 +193,16 @@ st.markdown(
                     .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
                     .stButton>button { padding: 0.25rem 0.4rem; font-size: 0.95rem; }
                 }
-            /* 1行リンクバー */
+            /* 1行リンクバー（互換のため残置） */
             .col-links { display:flex; justify-content:center; gap: 0.5rem; flex-wrap: nowrap; overflow-x: auto; padding: 0.25rem 0; }
             .col-links a, .col-links span { display:inline-block; min-width: 2.2rem; text-align:center; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 0.25rem 0.5rem; text-decoration: none; }
             .col-links a { color: inherit; }
             .col-links a:hover { background: rgba(255,255,255,0.1); }
             .col-links .disabled { opacity: 0.4; pointer-events: none; }
+            /* 1行ボタン行をチップ風に */
+            #act-btn-row + div[data-testid='stHorizontalBlock'] { display:flex; flex-wrap: nowrap; gap: 0.25rem; }
+            #act-btn-row + div[data-testid='stHorizontalBlock'] > div { flex: 1 0 auto; }
+            #act-btn-row + div[data-testid='stHorizontalBlock'] button { padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.95rem; }
             </style>
         """,
         unsafe_allow_html=True,
@@ -316,6 +320,18 @@ def render_action_links(legal_actions):
     parts.append("</div>")
     st.markdown("".join(parts), unsafe_allow_html=True)
 
+def render_action_buttons_one_row(legal_actions):
+    """URL遷移しない1行ボタン。"""
+    if not legal_actions:
+        return None
+    st.markdown('<div id="act-btn-row"></div>', unsafe_allow_html=True)
+    cols = st.columns(7)
+    for i in range(7):
+        with cols[i]:
+            if st.button(f"{i+1}", key=f"btn_row_{i}", disabled=(i not in legal_actions)):
+                return i
+    return None
+
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
     st.info("先手（人間）か後手（AI）を選んでください。")
@@ -369,10 +385,9 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        # 1行リンクUI
-        render_action_links(legal_actions)
-        action = get_clicked_action_from_query()
-        if action is not None and action in legal_actions:
+    # URL遷移しない1行ボタンUI
+    action = render_action_buttons_one_row(legal_actions)
+    if action is not None:
             _, reward, done = st.session_state.game.step(action)
             if done:
                 st.session_state.game_over = True
