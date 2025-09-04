@@ -281,8 +281,6 @@ if 'winner' not in st.session_state:
     st.session_state.winner = None
 if 'message' not in st.session_state:
     st.session_state.message = "先手/後手を選んでください。"
-if 'ai_scores' not in st.session_state:
-    st.session_state.ai_scores = None
 
 def start_new_game(first_player: str):
     st.session_state.game = Connect4()
@@ -296,7 +294,6 @@ def start_new_game(first_player: str):
     st.session_state.message = (
         "あなたの番です。下のボタンから列を選んでください。" if first_player == 'human' else "AIが先手です。"
     )
-    st.session_state.ai_scores = None
     st.session_state.game_started = True
     st.session_state.first_player = first_player
 
@@ -411,18 +408,7 @@ display_board(st.session_state.game.board)
 message_placeholder = st.empty()
 message_placeholder.info(st.session_state.message)
 
-# AIの評価表示（任意）
-if st.session_state.ai_scores:
-    with st.expander("AIの各列の評価値"):
-        scores = st.session_state.ai_scores
-        cols = st.columns(7)
-        for i in range(7):
-            with cols[i]:
-                val = scores.get(i, None)
-                if val is None:
-                    st.write(f"{i+1}: -")
-                else:
-                    st.write(f"{i+1}: {val:.3f}")
+## AIの各列の評価値表示は削除
 
 # 終了後のリザルト
 if st.session_state.game_over:
@@ -457,15 +443,13 @@ else:
                     st.session_state.winner = 0  # 引き分け
                 else:
                     st.session_state.winner = None
-            st.session_state.ai_scores = None
             st.rerun()
     else:  # AIのターン
         st.session_state.message = "AIが思考中です..."
         message_placeholder.info(st.session_state.message)
         with st.spinner("AIが思考中..."):
             time.sleep(1.0)
-            ai_action, scores = get_ai_action_and_scores(st.session_state.game, model, device)
-            st.session_state.ai_scores = scores
+            ai_action, _ = get_ai_action_and_scores(st.session_state.game, model, device)
             if ai_action is not None:
                 _, reward, done = st.session_state.game.step(ai_action)
                 if done:
