@@ -180,6 +180,7 @@ def display_board(board):
 
 # --- Streamlit アプリケーションのメイン処理 ---
 
+st.set_page_config(page_title="Connect4 (pytorch版)", layout="wide")
 st.title("Connect4（pytorch版）")
 
 # レスポンシブCSS（スマホ最適化）
@@ -231,16 +232,19 @@ def start_new_game(first_player: str):
     st.session_state.game_started = True
     st.session_state.first_player = first_player
 
-def render_action_bar(legal_actions):
-    """7カラムの横並びボタン（常に1行）で列選択。"""
-    clicked = None
-    cols = st.columns(7)
-    for i in range(7):
-        with cols[i]:
-            disabled = (i not in legal_actions)
-            if st.button(f"{i+1}", key=f"col_one_row_{i}", disabled=disabled):
-                clicked = i
-    return clicked
+def render_action_slider(legal_actions):
+    """横方向のセレクトスライダー + 『置く』ボタンで省スペース操作。"""
+    if not legal_actions:
+        return None
+    options = [i + 1 for i in legal_actions]  # 1-based 表示
+    c1, c2 = st.columns([5, 1])
+    with c1:
+        choice = st.select_slider("列を選択", options=options, key="col_select")
+    with c2:
+        go = st.button("置く", key="place_btn")
+    if go and choice is not None:
+        return int(choice) - 1  # 0-based に戻す
+    return None
 
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
@@ -295,7 +299,7 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        action = render_action_bar(legal_actions)
+        action = render_action_slider(legal_actions)
         if action is not None:
             _, reward, done = st.session_state.game.step(action)
             if done:
