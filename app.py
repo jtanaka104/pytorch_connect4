@@ -232,19 +232,32 @@ def start_new_game(first_player: str):
     st.session_state.game_started = True
     st.session_state.first_player = first_player
 
-def render_action_slider(legal_actions):
-    """横方向のセレクトスライダー + 『置く』ボタンで省スペース操作。"""
+def render_action_row(legal_actions):
+    """7個のボタンを『必ず1行』で表示（必要なら横スクロール）。"""
     if not legal_actions:
         return None
-    options = [i + 1 for i in legal_actions]  # 1-based 表示
-    c1, c2 = st.columns([5, 1])
-    with c1:
-        choice = st.select_slider("列を選択", options=options, key="col_select")
-    with c2:
-        go = st.button("置く", key="place_btn")
-    if go and choice is not None:
-        return int(choice) - 1  # 0-based に戻す
-    return None
+    clicked = None
+    # 直後のcolumnsコンテナをCSSで制御するためのマーカー
+    st.markdown('<div id="act-row-start"></div>', unsafe_allow_html=True)
+    cols = st.columns(7)
+    for i in range(7):
+        with cols[i]:
+            if st.button(f"{i+1}", key=f"col_row_{i}", disabled=(i not in legal_actions)):
+                clicked = i
+    # 折り返し禁止＋横スクロール許可（スマホで必ず1行に）
+    st.markdown(
+        """
+        <style>
+        #act-row-start + div[data-testid='stHorizontalBlock'] {
+          display: flex; flex-wrap: nowrap !important; gap: 0.25rem; overflow-x: auto;
+        }
+        #act-row-start + div[data-testid='stHorizontalBlock'] > div { flex: 1 0 auto; }
+        #act-row-start + div[data-testid='stHorizontalBlock'] button { padding: 0.25rem 0.35rem; font-size: 0.95rem; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    return clicked
 
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
@@ -299,7 +312,7 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        action = render_action_slider(legal_actions)
+        action = render_action_row(legal_actions)
         if action is not None:
             _, reward, done = st.session_state.game.step(action)
             if done:
