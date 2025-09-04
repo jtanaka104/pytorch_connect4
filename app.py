@@ -170,13 +170,32 @@ def display_board(board):
                 row_str += "□"
         board_lines.append(row_str)
     board_body = "<br/>".join(board_lines)
-    html = f'<span style="font-family:\'MS Gothic\',\'Osaka-Mono\',monospace;font-size:24px;line-height:1.1;">{header}<br/>{board_body}</span>'
+    html = f'''
+    <div class="board-wrap">
+        <span class="board">{header}<br/>{board_body}</span>
+    </div>
+    '''
     st.markdown(html, unsafe_allow_html=True)
 
 
 # --- Streamlit アプリケーションのメイン処理 ---
 
 st.title("Connect4（pytorch版）")
+
+# レスポンシブCSS（スマホ最適化）
+st.markdown(
+        """
+        <style>
+        .board-wrap { display: flex; justify-content: center; }
+        .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; }
+        @media (max-width: 600px) {
+            .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
+            .stButton>button { width: 100%; padding: 0.6rem 0.75rem; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+)
 
 model, device = load_model()
 
@@ -211,6 +230,26 @@ def start_new_game(first_player: str):
     st.session_state.ai_scores = None
     st.session_state.game_started = True
     st.session_state.first_player = first_player
+
+def render_action_buttons(legal_actions):
+    """スマホでも押しやすいように、1-4と5-7で2行に分けて配置。"""
+    clicked = None
+    # 1〜4列
+    cols1 = st.columns(4)
+    for i in range(4):
+        with cols1[i]:
+            disabled = (i not in legal_actions)
+            if st.button(f"{i+1}", key=f"col_r1_{i}", disabled=disabled):
+                clicked = i
+    # 5〜7列
+    cols2 = st.columns(3)
+    for j in range(3):
+        a = 4 + j
+        with cols2[j]:
+            disabled = (a not in legal_actions)
+            if st.button(f"{a+1}", key=f"col_r2_{a}", disabled=disabled):
+                clicked = a
+    return clicked
 
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
@@ -265,21 +304,19 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        cols = st.columns(7)
-        for i in range(7):
-            with cols[i]:
-                if st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions)):
-                    _, reward, done = st.session_state.game.step(i)
-                    if done:
-                        st.session_state.game_over = True
-                        if reward == 1:
-                            st.session_state.winner = 1  # Human勝利
-                        elif len(st.session_state.game.legal_actions()) == 0:
-                            st.session_state.winner = 0  # 引き分け
-                        else:
-                            st.session_state.winner = None
-                    st.session_state.ai_scores = None
-                    st.rerun()
+        action = render_action_buttons(legal_actions)
+        if action is not None:
+            _, reward, done = st.session_state.game.step(action)
+            if done:
+                st.session_state.game_over = True
+                if reward == 1:
+                    st.session_state.winner = 1  # Human勝利
+                elif len(st.session_state.game.legal_actions()) == 0:
+                    st.session_state.winner = 0  # 引き分け
+                else:
+                    st.session_state.winner = None
+            st.session_state.ai_scores = None
+            st.rerun()
 
     else:  # AIのターン
         st.session_state.message = "AIが思考中です..."
