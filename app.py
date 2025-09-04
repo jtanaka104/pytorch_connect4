@@ -30,11 +30,11 @@ class Connect4:
             if self.board[i][action] == 0:
                 self.board[i][action] = self.player
                 break
-        
+
         current_player_won = self.have_winner()
         done = current_player_won or len(self.legal_actions()) == 0
         reward = 1 if current_player_won else 0
-        
+
         # プレイヤー交代
         self.player *= -1
 
@@ -180,77 +180,124 @@ st.title("Connect4（pytorch版）")
 
 model, device = load_model()
 
+# セッション初期化（app_v2.pyの体裁に準拠）
+if 'game_started' not in st.session_state:
+    st.session_state.game_started = False
+if 'first_player' not in st.session_state:
+    st.session_state.first_player = None
 if 'game' not in st.session_state:
     st.session_state.game = Connect4()
+if 'game_over' not in st.session_state:
+    st.session_state.game_over = False
+if 'winner' not in st.session_state:
+    st.session_state.winner = None
+if 'message' not in st.session_state:
+    st.session_state.message = "先手/後手を選んでください。"
+if 'ai_scores' not in st.session_state:
+    st.session_state.ai_scores = None
+
+def start_new_game(first_player: str):
+    st.session_state.game = Connect4()
+    # 先手: human -> env.player=1, 後手: ai -> env.player=-1（AIが先に打つ）
+    if first_player == 'ai':
+        st.session_state.game.player = -1
+    else:
+        st.session_state.game.player = 1
     st.session_state.game_over = False
     st.session_state.winner = None
-    st.session_state.message = "あなたの番です。下のボタンから列を選んでください。"
-    st.session_state.ai_scores = None # AIの評価値を保存する場所
+    st.session_state.message = (
+        "あなたの番です。下のボタンから列を選んでください。" if first_player == 'human' else "AIが先手です。"
+    )
+    st.session_state.ai_scores = None
+    st.session_state.game_started = True
+    st.session_state.first_player = first_player
 
+# ゲーム開始前：先手/後手選択
+if not st.session_state.game_started:
+    st.info("先手（人間）か後手（AI）を選んでください。")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("先手（人間）で始める", key="start_human"):
+            start_new_game('human')
+            st.rerun()
+    with col2:
+        if st.button("後手（AI）で始める", key="start_ai"):
+            start_new_game('ai')
+            st.rerun()
+    st.stop()
+
+# ゲーム進行中：盤面/メッセージ
 display_board(st.session_state.game.board)
 message_placeholder = st.empty()
 message_placeholder.info(st.session_state.message)
 
+# AIの評価表示（任意）
+if st.session_state.ai_scores:
+    with st.expander("AIの各列の評価値"):
+        scores = st.session_state.ai_scores
+        cols = st.columns(7)
+        for i in range(7):
+            with cols[i]:
+                val = scores.get(i, None)
+                if val is None:
+                    st.write(f"{i+1}: -")
+                else:
+                    st.write(f"{i+1}: {val:.3f}")
+
+# 終了後のリザルト
 if st.session_state.game_over:
     if st.session_state.winner == 1:
         st.success("🎉 あなたの勝ちです！おめでとうございます！")
     elif st.session_state.winner == -1:
         st.error("🤖 AIの勝ちです。")
-    else:
+    elif st.session_state.winner == 0:
         st.warning("引き分けです。")
+    else:
+        st.info("ゲーム終了")
 
     if st.button("新しいゲームを始める"):
-        st.session_state.game = Connect4()
-        st.session_state.game_over = False
-        st.session_state.winner = None
-        st.session_state.message = "あなたの番です。下のボタンから列を選んでください。"
-        st.session_state.ai_scores = None
+        st.session_state.game_started = False
+        st.session_state.first_player = None
         st.rerun()
 
 else:
     current_player = st.session_state.game.get_player()
 
-    if current_player == 1: # 人間のターン
+    if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
         cols = st.columns(7)
         for i in range(7):
             with cols[i]:
                 if st.button(f"{i+1}", key=f"col_{i}", disabled=(i not in legal_actions)):
-                    # 【修正点B】step関数の返り値を正しく使うように修正
-                    _, _, done = st.session_state.game.step(i)
-                    
+                    _, reward, done = st.session_state.game.step(i)
                     if done:
                         st.session_state.game_over = True
-                        # 石を置いたのが人間なので、勝者も人間
-                        if len(st.session_state.game.legal_actions()) > 0:
-                             st.session_state.winner = 1  # Human
-                        else: # 引き分け
-                             st.session_state.winner = 0
-                    
-                    st.session_state.ai_scores = None # 次の自分のターンのためにクリア
+                        if reward == 1:
+                            st.session_state.winner = 1  # Human勝利
+                        elif len(st.session_state.game.legal_actions()) == 0:
+                            st.session_state.winner = 0  # 引き分け
+                        else:
+                            st.session_state.winner = None
+                    st.session_state.ai_scores = None
                     st.rerun()
 
-    else: # AIのターン
+    else:  # AIのターン
         st.session_state.message = "AIが思考中です..."
         message_placeholder.info(st.session_state.message)
-
         with st.spinner("AIが思考中..."):
             time.sleep(1.0)
             ai_action, scores = get_ai_action_and_scores(st.session_state.game, model, device)
-            st.session_state.ai_scores = scores # 評価値を保存
-
+            st.session_state.ai_scores = scores
             if ai_action is not None:
-                # 【修正点B】step関数の返り値を正しく使うように修正
-                _, _, done = st.session_state.game.step(ai_action)
-                
+                _, reward, done = st.session_state.game.step(ai_action)
                 if done:
                     st.session_state.game_over = True
-                    # 石を置いたのがAIなので、勝者もAI
-                    if len(st.session_state.game.legal_actions()) > 0:
-                        st.session_state.winner = -1 # AI
-                    else: # 引き分け
-                        st.session_state.winner = 0
-
+                    if reward == 1:
+                        st.session_state.winner = -1  # AI勝利
+                    elif len(st.session_state.game.legal_actions()) == 0:
+                        st.session_state.winner = 0  # 引き分け
+                    else:
+                        st.session_state.winner = None
         st.session_state.message = "あなたの番です。下のボタンから列を選んでください。"
         st.rerun()
 #
