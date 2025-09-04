@@ -191,7 +191,7 @@ st.markdown(
             .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; }
                 @media (max-width: 600px) {
                     .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
-                    .stButton>button { padding: 0.25rem 0.4rem; font-size: 0.95rem; }
+                    .stButton>button { padding: 0.2rem 0.35rem; font-size: 0.9rem; }
                 }
             /* 1行リンクバー（互換のため残置） */
             .col-links { display:flex; justify-content:center; gap: 0.5rem; flex-wrap: nowrap; overflow-x: auto; padding: 0.25rem 0; }
@@ -214,6 +214,15 @@ st.markdown(
                 border-radius: 999px;
                 font-size: 0.95rem;
             }
+
+            /* グローバル: すべての columns を横一列・折返しなしに（モバイルで縦積み防止） */
+            div[data-testid='stHorizontalBlock'] {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto;
+                gap: 0.25rem;
+            }
+            div[data-testid='stHorizontalBlock'] > div { flex: 0 0 auto; }
             </style>
         """,
         unsafe_allow_html=True,
