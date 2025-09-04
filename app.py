@@ -181,14 +181,23 @@ def display_board(board):
 # --- Streamlit アプリケーションのメイン処理 ---
 
 st.set_page_config(page_title="Connect4 (pytorch版)", layout="wide")
-st.title("Connect4（pytorch版）")
+st.markdown("<div class='app-title'>Connect4（pytorch版）</div>", unsafe_allow_html=True)
 
 # レスポンシブCSS（スマホ最適化）
 st.markdown(
         """
             <style>
+            /* アプリ全体の余白/ヘッダ最適化 */
+            div[data-testid='stHeader']{ display:none; }
+            #MainMenu{ visibility:hidden; }
+            footer{ visibility:hidden; }
+            .block-container{ padding-top: 0.4rem; padding-bottom: 0.4rem; }
+
+            /* 小さめタイトル */
+            .app-title{ text-align:center; font-size: 1.05rem; font-weight: 600; margin: 0.2rem 0 0.4rem; opacity: 0.9; }
+
             .board-wrap { display: flex; justify-content: center; }
-            .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; }
+            .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; margin-bottom: 0.25rem; }
                 @media (max-width: 600px) {
                     .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
                     .stButton>button { padding: 0.2rem 0.35rem; font-size: 0.9rem; }
@@ -204,16 +213,24 @@ st.markdown(
                 display: flex !important;
                 flex-direction: row !important;
                 flex-wrap: nowrap !important;
+                justify-content: center !important;
                 gap: 0.25rem;
                 overflow-x: auto;
                 white-space: nowrap;
             }
-            #act-btn-row ~ div[data-testid='stHorizontalBlock'] > div { flex: 0 0 auto; }
+            #act-btn-row ~ div[data-testid='stHorizontalBlock'] > div {
+                flex: 0 0 auto !important;
+                width: auto !important;
+                max-width: none !important;
+            }
             #act-btn-row ~ div[data-testid='stHorizontalBlock'] button {
                 padding: 0.25rem 0.5rem;
                 border-radius: 999px;
                 font-size: 0.95rem;
             }
+
+            /* 通知ボックスの余白を少し詰める */
+            div[data-testid='stAlert']{ margin: 0.4rem auto; }
 
             /* グローバル: すべての columns を横一列・折返しなしに（モバイルで縦積み防止） */
             div[data-testid='stHorizontalBlock'] {
