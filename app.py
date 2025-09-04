@@ -229,6 +229,27 @@ st.markdown(
                 font-size: 0.95rem;
             }
 
+            /* act-row 直下の columns をより強制的に1行中央寄せ */
+            .act-row + div[data-testid='stHorizontalBlock']{
+                display:flex !important;
+                justify-content:center !important;
+                align-items:center !important;
+                flex-wrap:nowrap !important;
+                gap:0.25rem !important;
+                overflow-x:auto !important;
+            }
+            .act-row + div[data-testid='stHorizontalBlock'] > div{
+                flex:0 0 auto !important;
+                width:auto !important;
+                max-width:none !important;
+            }
+            .act-row + div[data-testid='stHorizontalBlock'] button{
+                min-width:2.2rem;
+                padding:0.25rem 0.5rem;
+                font-size:0.95rem;
+                border-radius:999px;
+            }
+
             /* 通知ボックスの余白を少し詰める */
             div[data-testid='stAlert']{ margin: 0.4rem auto; }
 
@@ -361,12 +382,14 @@ def render_action_buttons_one_row(legal_actions):
     """URL遷移しない1行ボタン。"""
     if not legal_actions:
         return None
-    st.markdown('<div id="act-btn-row"></div>', unsafe_allow_html=True)
+    st.markdown('<div id="act-btn-row" class="act-row">', unsafe_allow_html=True)
     cols = st.columns(7)
     for i in range(7):
         with cols[i]:
             if st.button(f"{i+1}", key=f"btn_row_{i}", disabled=(i not in legal_actions)):
+                st.markdown('</div>', unsafe_allow_html=True)
                 return i
+    st.markdown('</div>', unsafe_allow_html=True)
     return None
 
 # ゲーム開始前：先手/後手選択
