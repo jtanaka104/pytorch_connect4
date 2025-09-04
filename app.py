@@ -185,14 +185,14 @@ st.title("Connect4（pytorch版）")
 # レスポンシブCSS（スマホ最適化）
 st.markdown(
         """
-        <style>
-        .board-wrap { display: flex; justify-content: center; }
-        .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; }
-        @media (max-width: 600px) {
-            .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
-            .stButton>button { width: 100%; padding: 0.6rem 0.75rem; }
-        }
-        </style>
+            <style>
+            .board-wrap { display: flex; justify-content: center; }
+            .board { font-family: 'Segoe UI Symbol','Noto Sans Symbols 2','Apple Color Emoji','MS Gothic','Osaka-Mono',monospace; font-size: 22px; line-height: 1.05; letter-spacing: 1px; }
+            @media (max-width: 600px) {
+                .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
+                .stButton>button { padding: 0.4rem 0.6rem; }
+            }
+            </style>
         """,
         unsafe_allow_html=True,
 )
@@ -231,25 +231,20 @@ def start_new_game(first_player: str):
     st.session_state.game_started = True
     st.session_state.first_player = first_player
 
-def render_action_buttons(legal_actions):
-    """スマホでも押しやすいように、1-4と5-7で2行に分けて配置。"""
-    clicked = None
-    # 1〜4列
-    cols1 = st.columns(4)
-    for i in range(4):
-        with cols1[i]:
-            disabled = (i not in legal_actions)
-            if st.button(f"{i+1}", key=f"col_r1_{i}", disabled=disabled):
-                clicked = i
-    # 5〜7列
-    cols2 = st.columns(3)
-    for j in range(3):
-        a = 4 + j
-        with cols2[j]:
-            disabled = (a not in legal_actions)
-            if st.button(f"{a+1}", key=f"col_r2_{a}", disabled=disabled):
-                clicked = a
-    return clicked
+def render_action_picker(legal_actions):
+    """横スクロール不要・省スペースな水平ラジオと『置く』ボタンの組み合わせ。"""
+    if not legal_actions:
+        return None
+    opts = [i + 1 for i in legal_actions]
+    # 水平ラジオ（モバイルでは複数行に自然に折り返す）
+    selected = st.radio("列を選択", options=opts, horizontal=True, key="action_radio")
+    # 実行ボタンを右に配置（レイアウトの都合で列に分割）
+    c1, c2 = st.columns([3, 1])
+    with c2:
+        go = st.button("置く", key="place_button")
+    if go and selected is not None:
+        return int(selected) - 1
+    return None
 
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
@@ -304,7 +299,7 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        action = render_action_buttons(legal_actions)
+        action = render_action_picker(legal_actions)
         if action is not None:
             _, reward, done = st.session_state.game.step(action)
             if done:
