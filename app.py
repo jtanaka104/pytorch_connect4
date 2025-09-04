@@ -385,9 +385,9 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-    # URL遷移しない1行ボタンUI
-    action = render_action_buttons_one_row(legal_actions)
-    if action is not None:
+        # URL遷移しない1行ボタンUI
+        action = render_action_buttons_one_row(legal_actions)
+        if action is not None:
             _, reward, done = st.session_state.game.step(action)
             if done:
                 st.session_state.game_over = True
@@ -399,7 +399,6 @@ else:
                     st.session_state.winner = None
             st.session_state.ai_scores = None
             st.rerun()
-
     else:  # AIのターン
         st.session_state.message = "AIが思考中です..."
         message_placeholder.info(st.session_state.message)
