@@ -193,6 +193,12 @@ st.markdown(
                     .board { font-size: 18px; line-height: 1.0; letter-spacing: 0.5px; }
                     .stButton>button { padding: 0.25rem 0.4rem; font-size: 0.95rem; }
                 }
+            /* 1行リンクバー */
+            .col-links { display:flex; justify-content:center; gap: 0.5rem; flex-wrap: nowrap; overflow-x: auto; padding: 0.25rem 0; }
+            .col-links a, .col-links span { display:inline-block; min-width: 2.2rem; text-align:center; border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 0.25rem 0.5rem; text-decoration: none; }
+            .col-links a { color: inherit; }
+            .col-links a:hover { background: rgba(255,255,255,0.1); }
+            .col-links .disabled { opacity: 0.4; pointer-events: none; }
             </style>
         """,
         unsafe_allow_html=True,
@@ -259,6 +265,57 @@ def render_action_row(legal_actions):
     )
     return clicked
 
+def _get_query_params():
+    # Streamlit 1.44: st.query_params is available; fallback to experimental in older versions
+    try:
+        return dict(st.query_params)
+    except Exception:
+        try:
+            return {k: (v[0] if isinstance(v, list) and v else v) for k, v in st.experimental_get_query_params().items()}
+        except Exception:
+            return {}
+
+def _clear_query_param(name: str):
+    try:
+        qp = st.query_params
+        if name in qp:
+            del qp[name]
+    except Exception:
+        try:
+            params = st.experimental_get_query_params()
+            if name in params:
+                del params[name]
+            st.experimental_set_query_params(**params)
+        except Exception:
+            pass
+
+def get_clicked_action_from_query():
+    params = _get_query_params()
+    val = params.get("col")
+    try:
+        if val is None:
+            return None
+        col = int(val) - 1
+        if 0 <= col <= 6:
+            # 消費して再実行時の二重実行を防ぐ
+            _clear_query_param("col")
+            return col
+    except Exception:
+        pass
+    return None
+
+def render_action_links(legal_actions):
+    # 1行のリンク列（合法手のみリンク、その他は無効表示）
+    parts = ["<div class='col-links'>"]
+    for i in range(7):
+        label = str(i+1)
+        if i in legal_actions:
+            parts.append(f"<a href='?col={i+1}'>{label}</a>")
+        else:
+            parts.append(f"<span class='disabled'>{label}</span>")
+    parts.append("</div>")
+    st.markdown("".join(parts), unsafe_allow_html=True)
+
 # ゲーム開始前：先手/後手選択
 if not st.session_state.game_started:
     st.info("先手（人間）か後手（AI）を選んでください。")
@@ -312,8 +369,10 @@ else:
 
     if current_player == 1:  # 人間のターン
         legal_actions = st.session_state.game.legal_actions()
-        action = render_action_row(legal_actions)
-        if action is not None:
+        # 1行リンクUI
+        render_action_links(legal_actions)
+        action = get_clicked_action_from_query()
+        if action is not None and action in legal_actions:
             _, reward, done = st.session_state.game.step(action)
             if done:
                 st.session_state.game_over = True
